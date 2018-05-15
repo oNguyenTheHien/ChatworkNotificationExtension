@@ -51,24 +51,30 @@ var opt = {
 
 chrome.alarms.onAlarm.addListener(function( alarm ) {
   var xmlHttp = new XMLHttpRequest();
-xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/43446443/messages", false);
-xmlHttp.setRequestHeader("X-ChatWorkToken", "e23a78058e9ff971d1240110248a6af4");
-xmlHttp.send(null)
-// alert("Result: " + xmlHttp.responseText);
+  xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/106949072/messages", false);
+  xmlHttp.setRequestHeader("X-ChatWorkToken", "e23a78058e9ff971d1240110248a6af4");
+  xmlHttp.send(null)
+//  alert("Result: " + xmlHttp.responseText);
   var currentdate = new Date(); 
-var datetime = "Last Sync: " + currentdate.getDate() + "/"
+  var datetime = "Last Sync: " + currentdate.getDate() + "/"
                 + (currentdate.getMonth()+1)  + "/" 
                 + currentdate.getFullYear() + " @ "  
                 + currentdate.getHours() + ":"  
                 + currentdate.getMinutes() + ":" 
                 + currentdate.getSeconds();
-                var opt = {
-  type: 'basic',
-  title: 'You receive a new message',
-  message: xmlHttp.responseText,
-  iconUrl:'images/get_started16.png'
-
-};
+  if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
+    console.log("no message");
+    return;
+  }
+  var json = JSON.parse(xmlHttp.responseText);
+  var length = json.length;
+  if (length == 0) return;
+  var opt = {
+    type: 'basic',
+    title: 'You receive a new message',
+    message: json[length - 1].body,
+    iconUrl: json[length - 1].account.avatar_image_url
+  };
   chrome.notifications.create(datetime,opt, function(id) { console.log("Last error:", chrome.runtime.lastError); });
   // chrome.notifications.clear('notify1', function(id) { console.log("Last error:", chrome.runtime.lastError); });
 ;
