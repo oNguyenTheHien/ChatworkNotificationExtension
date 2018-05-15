@@ -56,3 +56,9 @@ chrome.alarms.onAlarm.addListener(function( alarm ) {
 });
 
 
+var xmlHttp = new XMLHttpRequest();
+xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/43446443/messages", false);
+xmlHttp.setRequestHeader("X-ChatWorkToken", "e23a78058e9ff971d1240110248a6af4");
+xmlHttp.send(null)
+alert("Result: " + xmlHttp.responseText);
+
