@@ -2,84 +2,110 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-'use strict';
+var rooms = [];
+var roomsDict = {};
 
 chrome.runtime.onInstalled.addListener(function() {
   chrome.storage.sync.set({color: '#3aa757'}, function() {
-    console.log('The color is green.');
-    doToggleAlarm();
+  createAlarm();
   });
 });
 
 var alarmName = 'remindme';
 
-function checkAlarm(callback) {
-  chrome.alarms.getAll(function(alarms) {
-    var hasAlarm = alarms.some(function(a) {
-      return a.name == alarmName;
-    });
-    if (callback) callback(hasAlarm);
-  })
-}
 function createAlarm() {
   chrome.alarms.create(alarmName, {
-    delayInMinutes: 0.1, periodInMinutes: 0.1});
+    delayInMinutes: 0.1, periodInMinutes: 0.3});
 }
 function cancelAlarm() {
   chrome.alarms.clear(alarmName);
 }
-function doToggleAlarm() {
-  checkAlarm( function(hasAlarm) {
-    if (hasAlarm) {
-      cancelAlarm();
-    } else {
-      createAlarm();
-    }
-    checkAlarm();
-  });
-}
-
-var opt = {
-  type: 'list',
-  title: 'keep burning',
-  message: 'Primary message to display',
-  priority: 1,
-  items: [{ title: '', message: ''}],
-  iconUrl:'images/get_started16.png'
-
-};
 
 chrome.alarms.onAlarm.addListener(function( alarm ) {
-  var xmlHttp = new XMLHttpRequest();
-  xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/106949072/messages", false);
-  xmlHttp.setRequestHeader("X-ChatWorkToken", "e23a78058e9ff971d1240110248a6af4");
-  xmlHttp.send(null)
-//  alert("Result: " + xmlHttp.responseText);
-  var currentdate = new Date(); 
-  var datetime = "Last Sync: " + currentdate.getDate() + "/"
-                + (currentdate.getMonth()+1)  + "/" 
-                + currentdate.getFullYear() + " @ "  
-                + currentdate.getHours() + ":"  
-                + currentdate.getMinutes() + ":" 
-                + currentdate.getSeconds();
-  if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
-    console.log("no message");
+  let tokenStr = localStorage.getItem("insertToken");
+  if(tokenStr == "" || tokenStr == null) return;
+  if (rooms.length == 0)
+  {
+    getRooms();
     return;
   }
-  var json = JSON.parse(xmlHttp.responseText);
-  var length = json.length;
-  if (length == 0) return;
-  var opt = {
-    type: 'basic',
-    title: 'You receive a new message',
-    message: json[length - 1].body,
-    iconUrl: json[length - 1].account.avatar_image_url
-  };
-  chrome.notifications.create(datetime,opt, function(id) { console.log("Last error:", chrome.runtime.lastError); });
-  // chrome.notifications.clear('notify1', function(id) { console.log("Last error:", chrome.runtime.lastError); });
-;
+
+  for (var i = 0; i < rooms.length; i++) {
+    if (rooms[i].type != "group") continue;
+    console.log("room count" + i);
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/"+rooms[i].room_id+"/messages", false);
+    xmlHttp.setRequestHeader("X-ChatWorkToken", tokenStr);
+    xmlHttp.send(null)
+    var currentdate = new Date(); 
+    var datetime = "Last Sync: " + currentdate.getDate() + "/"
+                  + (currentdate.getMonth()+1)  + "/" 
+                  + currentdate.getFullYear() + " @ "  
+                  + currentdate.getHours() + ":"  
+                  + currentdate.getMinutes() + ":" 
+                  + currentdate.getSeconds();
+    if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
+      console.log("no message");
+      continue;
+    }
+    var json = JSON.parse(xmlHttp.responseText);
+    var length = json.length;
+    var messageBody = json[length - 1].body;
+    messageBody = convertMessage(messageBody);
+    if (length == 0) continue;
+    var opt = {
+      type: 'basic',
+      title: 'You receive a new message',
+      message: messageBody,
+      iconUrl: json[length - 1].account.avatar_image_url
+    };
+    chrome.notifications.create(datetime,opt, function(id) { console.log("Last error:", chrome.runtime.lastError); });
+    if(i == 0) {
+      getRooms();
+    }
+  }
 });
 
+function getRooms() {
+  let tokenStr = localStorage.getItem("insertToken");
+  if(tokenStr == "" || tokenStr == null) return;
+  var xmlHttp = new XMLHttpRequest();
+  xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms", false);
+  xmlHttp.setRequestHeader("X-ChatWorkToken", tokenStr);
+  xmlHttp.send(null)
+  if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
+    return;
+  }
+  rooms = [];
+  var roomsJson = JSON.parse(xmlHttp.responseText);
+  if(roomsJson.length == 0) return;
+
+  for (var i = 0 ; i < roomsJson.length ; i++) {
+    if(roomsJson[i].unread_num != 0 || roomsDict[roomsJson[i].room_id] == undefined || roomsJson[i].unread_num != roomsDict[roomsJson[i].unread_num]) {
+      rooms.push(roomsJson[i].room_id);
+    }
+    roomsDict[roomsJson[i].room_id] = roomsJson[i].unread_num;
+  }
+
+}
+
+
+ function convertMessage (messageBody) {
+  var index = messageBody.indexOf("[rp aid");
+  while (index != -1) {
+    for(var i = index; i < messageBody.length; i++) {
+      if (messageBody.charAt(i) == ']') {
+        var replyStr = messageBody.substring(index, i+1);
+        messageBody = messageBody.replace(replyStr, " RE:");
+        index = messageBody.indexOf("[rp aid");
+        break;
+      }
+    }
+  }
+
+  return messageBody;
+ 
+ }
 
 
 
