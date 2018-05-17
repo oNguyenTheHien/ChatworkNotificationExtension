@@ -6,12 +6,10 @@ var rooms = [];
 var roomsDict = {};
 
 chrome.runtime.onInstalled.addListener(function() {
-  chrome.storage.sync.set({color: '#3aa757'}, function() {
-    createAlarm();
-  });
+  createAlarm();
 });
 
-var alarmName = 'remindme';
+var alarmName = 'notification-worker';
 
 function createAlarm() {
   chrome.alarms.create(alarmName, {
@@ -19,6 +17,7 @@ function createAlarm() {
 }
 function cancelAlarm() {
   chrome.alarms.clear(alarmName);
+    delayInMinutes: 0.0, periodInMinutes: 0.1});
 }
 
 chrome.alarms.onAlarm.addListener(function( alarm ) {
@@ -31,7 +30,7 @@ chrome.alarms.onAlarm.addListener(function( alarm ) {
   }
 
   for (var i = 0; i < rooms.length; i++) {
-    console.log("room count" + i);
+    console.log("Requesting messages from " + rooms[i].name);
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/"+rooms[i]+"/messages", false);
     xmlHttp.setRequestHeader("X-ChatWorkToken", tokenStr);
@@ -44,7 +43,7 @@ chrome.alarms.onAlarm.addListener(function( alarm ) {
     + currentdate.getMinutes() + ":" 
     + currentdate.getSeconds();
     if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
-      console.log("no message");
+      console.log("No new messages from " + rooms[i].name);
       continue;
     }
     var json = JSON.parse(xmlHttp.responseText);
@@ -54,7 +53,7 @@ chrome.alarms.onAlarm.addListener(function( alarm ) {
     if (length == 0) continue;
     var opt = {
       type: 'basic',
-      title: 'You receive a new message',
+      title: rooms[i].name,
       message: messageBody,
       iconUrl: json[length - 1].account.avatar_image_url
     };
@@ -100,16 +99,14 @@ function convertMessage (messageBody) {
   while (index != -1) {
     for(var i = index; i < messageBody.length; i++) {
       if (messageBody.charAt(i) == ']') {
-        var replyStr = messageBody.substring(index, i+1);
-        messageBody = messageBody.replace(replyStr, " RE:");
+        var replyStr = messageBody.substring(index, i + 1);
+        messageBody = messageBody.replace(replyStr, " [RE]");
         index = messageBody.indexOf("[rp aid");
         break;
       }
     }
   }
-
   return messageBody;
-
 }
 
 
