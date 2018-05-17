@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatwork++++ settings</title>
+  <script type="text/javascript" src="settings.js"></script>
+  <style type="text/css">
+  tr {
+    line-height: 26px;
+  }
+  .header-row {
+    background-color: #f4a641;
+    color: #ffffff;
+    text-align: center;
+  }
+  .odd-row {
+    background-color: #cccccc;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-padding-10 {
+    padding-left: 10px;
+  }
+</style>
+</head>
+<body id="body">
+  <div style="width: 800px; display: block; margin: auto; padding-top: 20px">
+    <center><h1>Chatwork++++ settings</h1></center>
+    <div style="width: 100%; margin: 0px auto; padding-bottom: 20px">
+      <input style="width: 80%; margin-left: 20px;" type="text" id="txtTokenKey" placeholder="Enter your chatwork token key" />
+      <button style="float: right; width: 10%" id="btnSaveToken">Load</button>
+    </div>
+    <div style="float: right; padding-bottom: 20px">
+      <button id="btnSelectAll">Select all</button>
+      <button id="btnDeselectAll">Deselect all</button>
+      <button id="btnSaveSettings">Save settings</button>
+    </div>
+    <table id="tblGroupList" style="width: 100%" align="center">
+      <tr class="header-row">
+        <td style="width: 50px">No.</td>
+        <td style="width: 30%">Group ID</td>
+        <td style="width: 50%">Group name</td>
+        <td style="width: 50px">Notify</td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

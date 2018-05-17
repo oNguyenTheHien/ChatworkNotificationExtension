@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-let insertButton = document.getElementById('InsertButton');
-insertButton.onclick = function(element) {
-  localStorage.setItem("insertToken",document.getElementById('CW_TOKEN_TEXTFIELD').value);
+window.onload = function() {
+  window.open("settings.html");
 };
