@@ -1,9 +1,8 @@
 {
-  "name": "Getting Started Example",
+  "name": "Chatwork++++",
   "version": "1.0",
-  "description": "Build an Extension!",
-  "permissions": ["activeTab", "declarativeContent", "storage", "alarms", "notifications","https://*/"],
-  "options_page": "options.html",
+  "description": "Chatwork++++ notifications alert by Nguyen The Hien x Nguyen Xuan Thanh!",
+  "permissions": ["storage", "alarms", "notifications","https://*/"],
   "background": {
     "scripts": ["background.js"],
     "persistent": false

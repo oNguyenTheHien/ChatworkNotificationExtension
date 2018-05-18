@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// var roomsDict = {};
-
 chrome.runtime.onInstalled.addListener(function() {
   createAlarm();
 });
@@ -12,7 +10,7 @@ var alarmName = 'notification-worker';
 
 function createAlarm() {
   chrome.alarms.create(alarmName, {
-    delayInMinutes: 0.0, periodInMinutes: 0.3
+    delayInMinutes: 0.5, periodInMinutes: 0.5
   });
 }
 
@@ -21,35 +19,42 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
     let tokenKey = data.tokenKey;
     let allGroups = JSON.parse(data.allGroups);
     let selectedGroups = JSON.parse(data.selectedGroups);
+    let currentDate = new Date(); 
+    var dateTimeString = currentDate.toString();
     if (tokenKey == null || tokenKey == "") {
-      console.log("No token key.");
+      console.log(dateTimeString + " No token key.");
       return;
     }
     let requestingGroups = getGroups(tokenKey, allGroups, selectedGroups);
+    if (requestingGroups.length == 0) {
+      console.log(dateTimeString + " No groups have new message.");
+    }
     for (var i = 0; i < requestingGroups.length; i++) {
-      console.log("Requesting messages from " + requestingGroups[i].name);
+      console.log(dateTimeString + " Requesting messages from " + requestingGroups[i].name);
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms/" + requestingGroups[i].room_id + "/messages", false);
       xmlHttp.setRequestHeader("X-ChatWorkToken", tokenKey);
       xmlHttp.send(null)
-      let currentDate = new Date(); 
-      var notificationID = currentDate.toString();
+      
       if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
-        console.log("No new messages from " + requestingGroups[i].name);
+        console.log(dateTimeString + " No new messages from " + requestingGroups[i].name);
         continue;
       }
       var messages = JSON.parse(xmlHttp.responseText);
       var length = messages.length;
       var messageBody = messages[length - 1].body;
       messageBody = convertMessage(messageBody);
-      if (length == 0) continue;
+      if (length == 0) {
+        console.log(dateTimeString + " No new messages from " + requestingGroups[i].name);
+        continue;
+      }
       var options = {
         type: "basic",
         title: requestingGroups[i].name,
         message: messageBody,
         iconUrl: messages[length - 1].account.avatar_image_url
       };
-      chrome.notifications.create(notificationID, options);
+      chrome.notifications.create(dateTimeString, options);
     }
   });
 });
@@ -81,38 +86,29 @@ function getGroups(tokenKey, allGroups, selectedGroups) {
         break;
       }
     }
-      // if (roomsDict[group.room_id] == undefined) {
-      //   if (group.unread_num != 0) {
-      //     console.log("Getting messages from " + group.name + ". Unread count: " + group.unread_num);
-      //     rooms.push(group);
-      //   }
-      // } else {
-      //   if (roomsDict[group.room_id] != group.unread_num && group.unread_num != 0) {
-      //     console.log("Getting messages from " + group.name + ". Unread count: " + group.unread_num);
-      //     rooms.push(group);
-      //   }
-      // }
-      // roomsDict[group.room_id] = group.unread_num;
-    }
-    chrome.storage.sync.set({"allGroups": JSON.stringify(savingGroups)}, function() {});
-    return returnGroups;
+  }
+  chrome.storage.sync.set({"allGroups": JSON.stringify(savingGroups)}, function() {});
+  return returnGroups;
 }
 
 
-function convertMessage (messageBody) {
-  var index = messageBody.indexOf("[rp aid");
-  while (index != -1) {
-    for(var i = index; i < messageBody.length; i++) {
-      if (messageBody.charAt(i) == ']') {
-        var replyStr = messageBody.substring(index, i + 1);
-        messageBody = messageBody.replace(replyStr, "[RE]");
-        index = messageBody.indexOf("[rp aid");
-        break;
+function convertMessage(messageBody) {
+  for (var i = 0; i < startStrings.length; i++) {
+    var startIndex = messageBody.indexOf(startStrings[i]);
+    while (startIndex != -1) {
+      var endIndex = messageBody.substring(startIndex).indexOf(endStrings[i]);
+      if (endIndex != -1) {
+        var replacedStr = messageBody.substring(startIndex, endIndex + endStrings[i].length);
+        messageBody = messageBody.replace(replacedStr, replaceStrings[i]);
+        startIndex = messageBody.indexOf(startStrings[i]);
+      } else {
+        startIndex = -1;
       }
     }
   }
   return messageBody;
 }
 
-
-
+var startStrings = ["[To:", "[rp aid", "[qt][qtmeta aid", "[info][title][dtext:chatroom_chat_edited][/title][dtext:chatroom_member_is]", "[info][title][dtext:chatroom_chat_edited][/title][dtext:chatroom_member_is]"];
+var endStrings = ["]", "]", "]", "[dtext:chatroom_added][/info]", "[dtext:chatroom_deleted][/info]"];
+var replaceStrings = ["[To]", "[Re]", "[qt]", "A new member joined the group.", "A member has been deleted."];

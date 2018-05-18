@@ -3,10 +3,7 @@
 // found in the LICENSE file.
 
 window.onload = function() {
-	var allGroupsStr;
-	chrome.storage.sync.get(["allGroups", "selectedGroups"], function(data) {
-		updateTable(data.allGroups, data.selectedGroups);
-	});
+	loadData();
 
 	document.getElementById("btnSelectAll").onclick = function() {
 		updateAllCheckbox(true);
@@ -22,8 +19,23 @@ window.onload = function() {
 			alert("Please enter your chatwork token key!");
 			return;
 		}
-		chrome.storage.sync.set({"tokenKey": tokenKey}, function() {
-
+		chrome.storage.sync.set({"tokenKey": tokenKey, "selectedGroups": "[]", "allGroups": "{}"}, function() {
+			var xmlHttp = new XMLHttpRequest();
+			xmlHttp.open("GET", "https://api.chatwork.com/v2/rooms", false);
+			xmlHttp.setRequestHeader("X-ChatWorkToken", tokenKey);
+			xmlHttp.send(null)
+			if (xmlHttp.responseText == "" || xmlHttp.responseText == null) {
+				return returnGroups;
+			}
+			var savingGroups = [];
+			var totalGroups = JSON.parse(xmlHttp.responseText);
+			for (var i = 0; i < totalGroups.length ; i++) {
+				if (totalGroups[i].type != "group") continue;
+				savingGroups.push(totalGroups[i]);
+			}
+			chrome.storage.sync.set({"allGroups": JSON.stringify(savingGroups)}, function() {
+				loadData();
+			});
 		});
 	};
 
@@ -41,6 +53,12 @@ window.onload = function() {
 	};
 };
 
+function loadData() {
+	chrome.storage.sync.get(["allGroups", "selectedGroups"], function(data) {
+		updateTable(data.allGroups, data.selectedGroups);
+	});
+}
+
 function updateTable(allGroupsStr, selectedGroupsStr) {
 	if (allGroupsStr == null || allGroupsStr == "") {
 		console.log("No groups cache found!");
@@ -50,7 +68,7 @@ function updateTable(allGroupsStr, selectedGroupsStr) {
 	var selectedGroups = JSON.parse(selectedGroupsStr);
 	var table = document.getElementById("tblGroupList");
 	var tableRowCount = table.getElementsByTagName("tr").length;
-	for (var i = 0; i < tableRowCount - 1; i++) {
+	for (var i = tableRowCount - 1; i > 0; i--) {
 		table.deleteRow(i);
 	}
 	for (var i = 0; i < allGroups.length; i++) {
