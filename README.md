@@ -33,3 +33,5 @@ To use this entension, first of all, you need your Chatwork API token. If your C
 ![](https://images.viblo.asia/7fc058a2-ecbd-4a71-856c-0251d985b9b3.png)
 
 - After that, your groups chat will be displayed in settings page. You can select some groups that you want to receive notification whenever it has new message.
+
+![](https://i.imgur.com/4YGMl98.png)
